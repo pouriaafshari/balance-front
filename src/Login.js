@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie'; // Import the cookies library or use an alternative
 import { useUserId } from './UserIdContext';
 
-const serverUrl = 'http://localhost:3000/savePhoneNumber'; // Replace with your actual server URL
-const serverAuthUrl = 'http://localhost:3000/auth';
+const serverUrl = 'https://balance-8m0x.onrender.com//savePhoneNumber'; // Replace with your actual server URL
+const serverAuthUrl = 'https://balance-8m0x.onrender.com//auth';
 
 function Login({ LoggedIn }) {
   const navigate = useNavigate();
