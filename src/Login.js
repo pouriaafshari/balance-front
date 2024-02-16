@@ -4,13 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie'; // Import the cookies library or use an alternative
 import { useUserId } from './UserIdContext';
 
-const serverUrl = 'https://balance-8m0x.onrender.com//savePhoneNumber'; // Replace with your actual server URL
-const serverAuthUrl = 'https://balance-8m0x.onrender.com//auth';
+//const serverUrl = 'https://balance-8m0x.onrender.com/verifyPhoneNumber'; // Replace with your actual server URL
+//const serverAuthUrl = 'https://balance-8m0x.onrender.com/auth';
+const serverVerify = 'http://localhost:3000/verifyPhoneNumber'; // Replace with your actual server URL
+const serverLogin = 'http://localhost:3000/login';
+const serverAuthUrl = 'http://localhost:3000/auth';
 
 function Login({ LoggedIn }) {
   const navigate = useNavigate();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showNotGoodText, setShowNotGoodText] = useState(true);
+  const [isValidPhoneNumber, setIsValidPhoneNumber] = useState(false);
+  const [verifyToken, setVerifyToken] = useState(null);
+  const [codeInput, setCodeInput] = useState('');
+  const [isCodeValid, setIsCodeValid] = useState(false);
 
   // Load stored login state and user ID on component mount
   const { setUserIdAndNavigate } = useUserId(); // Access setUserIdAndNavigate from context
@@ -33,7 +40,7 @@ function Login({ LoggedIn }) {
             if (/^\d{6}$/.test(userId)) {
               // Authentication successful, proceed with login
               LoggedIn();
-              
+
               // Update userId in context and navigate to '/menu'
               setUserIdAndNavigate(userId);
               navigate('/menu');
@@ -59,20 +66,55 @@ function Login({ LoggedIn }) {
     setPhoneNumber(value);
 
     // Check if the phone number meets the specified criteria
-    const isValidPhoneNumber = /^\d{11}$/.test(value) && value.startsWith('09');
-    setShowNotGoodText(!isValidPhoneNumber);
+    const isValidNumber = /^\d{11}$/.test(value) && value.startsWith('09');
+    setIsValidPhoneNumber(isValidNumber);
+    setShowNotGoodText(!isValidNumber);
+  };
+
+  const authNumber = async () => {
+    try {
+      const response = await fetch(serverVerify, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber }),
+      });
+
+      if (response.ok) {
+        const { verifytoken } = await response.json();
+
+        // Log the server response
+        console.log('Server response:', response);
+
+        // Enable the code input area
+        setVerifyToken(verifytoken);
+      } else {
+        // Handle server error
+        console.error('Server error:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error sending POST request:', error);
+    }
+  };
+
+  const handleAuthNumber = () => {
+    // Call the authNumber function to request authentication code
+    authNumber();
   };
 
   const handleLogin = async () => {
-    if (!showNotGoodText) {
+    if (isValidPhoneNumber && verifyToken) {
+
       // Send POST request to the server
       try {
-        const response = await fetch(serverUrl, {
+        const response = await fetch(serverLogin, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${verifyToken}`,
           },
-          body: JSON.stringify({ phoneNumber }),
+          body: JSON.stringify({ phoneNumber, codeInput }),
         });
 
         if (response.ok) {
@@ -100,6 +142,15 @@ function Login({ LoggedIn }) {
     }
   };
 
+  const handleCodeInputChange = (e) => {
+    const value = e.target.value;
+    setCodeInput(value);
+
+    // Check if the entered code is only numbers and 6 digits
+    const isValidCode = /^\d{6}$/.test(value);
+    setIsCodeValid(isValidCode);
+  };
+
   return (
     <div>
       <h3>بالانس</h3>
@@ -111,13 +162,21 @@ function Login({ LoggedIn }) {
         onChange={handlePhoneNumberChange}
       />
       <br />
-      <button onClick={handleLogin}>
+      <button disabled={!isValidPhoneNumber} onClick={handleAuthNumber}>
         دریافت کد یک بار مصرف
       </button>
       <br />
-      <input type='text' placeholder='کد یک بار مصرف'></input>
+      <input
+        type='text'
+        placeholder='کد یک بار مصرف'
+        value={codeInput}
+        onChange={handleCodeInputChange}
+        disabled={!verifyToken}
+      />
       <br />
-      <button disabled={showNotGoodText} onClick={handleLogin}>ورود</button>
+      <button disabled={!isCodeValid} onClick={handleLogin}>
+        ورود
+      </button>
       {showNotGoodText && <p className='error'>*شماره وارد شده معتبر نمی باشد*</p>}
     </div>
   );
