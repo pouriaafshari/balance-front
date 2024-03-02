@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import './Login.css';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie'; // Import the cookies library or use an alternative
-import { useUserId } from './UserIdContext';
+import Lottie from 'react-lottie';
+import * as loadinganimation from './looties/loading.json'
 
-//const serverUrl = 'https://balance-8m0x.onrender.com/verifyPhoneNumber'; // Replace with your actual server URL
-//const serverAuthUrl = 'https://balance-8m0x.onrender.com/auth';
-const serverVerify = 'http://localhost:3000/verifyPhoneNumber'; // Replace with your actual server URL
-const serverLogin = 'http://localhost:3000/login';
-const serverAuthUrl = 'http://localhost:3000/auth';
+const serverVerify = 'https://afshari.liara.run/verifyPhoneNumber'; // Replace with your actual server URL
+const serverAuthUrl = 'https://afshari.liara.run/auth';
+const serverLogin = 'https://afshari.liara.run/login';
+//const serverVerify = 'http://localhost:3000/verifyPhoneNumber'; // Replace with your actual server URL
+//const serverLogin = 'http://localhost:3000/login';
+//const serverAuthUrl = 'http://localhost:3000/auth';
+
 
 function Login({ LoggedIn }) {
   const navigate = useNavigate();
@@ -18,9 +21,9 @@ function Login({ LoggedIn }) {
   const [verifyToken, setVerifyToken] = useState(null);
   const [codeInput, setCodeInput] = useState('');
   const [isCodeValid, setIsCodeValid] = useState(false);
+  const [loading, setLoading] = useState(false); // Added loading state
 
   // Load stored login state and user ID on component mount
-  const { setUserIdAndNavigate } = useUserId(); // Access setUserIdAndNavigate from context
 
   useEffect(() => {
     const authenticateToken = async () => {
@@ -35,18 +38,15 @@ function Login({ LoggedIn }) {
           });
 
           if (response.ok) {
-            const { userId } = await response.json();
+            const { stat } = await response.json();
 
-            if (/^\d{6}$/.test(userId)) {
+            if (stat === 'ok') {
               // Authentication successful, proceed with login
               LoggedIn();
-
-              // Update userId in context and navigate to '/menu'
-              setUserIdAndNavigate(userId);
               navigate('/menu');
             } else {
               // Handle invalid user ID from server response
-              console.error('Invalid user ID from server:', userId);
+              console.error('Invalid Token, could not authenticate');
             }
           } else {
             // Handle server error or authentication failure
@@ -59,7 +59,7 @@ function Login({ LoggedIn }) {
     };
 
     authenticateToken();
-  }, [LoggedIn, setUserIdAndNavigate, navigate]);
+  }, [LoggedIn, navigate]);
 
   const handlePhoneNumberChange = (e) => {
     const value = e.target.value;
@@ -72,6 +72,8 @@ function Login({ LoggedIn }) {
   };
 
   const authNumber = async () => {
+    setLoading(true);
+
     try {
       const response = await fetch(serverVerify, {
         method: 'POST',
@@ -95,6 +97,8 @@ function Login({ LoggedIn }) {
       }
     } catch (error) {
       console.error('Error sending POST request:', error);
+    } finally {
+      setLoading(false); // Set loading to false when the request is complete
     }
   };
 
@@ -106,6 +110,7 @@ function Login({ LoggedIn }) {
   const handleLogin = async () => {
     if (isValidPhoneNumber && verifyToken) {
 
+      setLoading(true);
       // Send POST request to the server
       try {
         const response = await fetch(serverLogin, {
@@ -120,13 +125,12 @@ function Login({ LoggedIn }) {
         if (response.ok) {
           const { Accesstoken, Uid } = await response.json();
 
-          if (Accesstoken && /^\d{6}$/.test(Uid)) {
+          if (Accesstoken) {
             // Server response is valid, proceed with login
             // Save access token to cookies
             Cookies.set('accessToken', Accesstoken);
 
             LoggedIn();
-            setUserIdAndNavigate(Uid);
             navigate('/menu');
           } else {
             // Handle invalid data from server response
@@ -138,6 +142,8 @@ function Login({ LoggedIn }) {
         }
       } catch (error) {
         console.error('Error sending POST request:', error);
+      } finally {
+        setLoading(false); // Set loading to false when the request is complete
       }
     }
   };
@@ -151,8 +157,34 @@ function Login({ LoggedIn }) {
     setIsCodeValid(isValidCode);
   };
 
+  const defaultOptions = {
+    loop: true,
+    autoplay: true, 
+    animationData: loadinganimation,
+    rendererSettings: {
+      preserveAspectRatio: 'xMidYMid slice'
+    }
+  };
+
   return (
     <div>
+      {loading && (
+        <Lottie
+          options={defaultOptions}
+          isClickToPauseDisabled={true}
+          height={'100vw'}
+          width={'100vw'}
+          isStopped={false}
+          isPaused={false}
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 9999,
+          }}
+        />
+      )}
       <h3>بالانس</h3>
       <p>شمارہ تلفن خود را وارد کنید</p>
       <input

@@ -142,3 +142,11 @@ h4 {
   padding: 8px; /* Add padding to the right column for better spacing */
   border-left: 1px solid gray;
 }
+
+.loading {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+}
